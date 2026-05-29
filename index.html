@@ -309,7 +309,7 @@ const AI_DISHES = [
 ];
 
 // ===== STATE =====
-let S = { recipes:[], calendar:{}, shopChecked:{1:{},2:{}}, startDate:getMonday() };
+let S = { recipes:[], calendar:{}, shopChecked:{1:{},2:{}}, startDate:getMonday(), aiOverrides:{} };
 
 function getMonday() {
   const d = new Date(); const dow = d.getDay();
@@ -323,7 +323,10 @@ function getWeekDates(w) {
   for(let i=0;i<7;i++){const d=new Date(s);d.setDate(d.getDate()+i);dates.push(d);}
   return dates;
 }
-function allRecipes() { return [...S.recipes,...AI_DISHES]; }
+function allRecipes() {
+  const aiDishes = AI_DISHES.map(d => S.aiOverrides[d.id] ? {...d,...S.aiOverrides[d.id],isAI:true} : d);
+  return [...S.recipes,...aiDishes];
+}
 
 function load() {
   const raw=localStorage.getItem('fm2_state');
@@ -332,12 +335,13 @@ function load() {
   S.recipes=p.recipes||[];
   S.calendar=p.calendar||{};
   S.shopChecked=p.shopChecked||{1:{},2:{}};
+  S.aiOverrides=p.aiOverrides||{};
   if(p.startDate)S.startDate=new Date(p.startDate);
 }
 function save() {
   localStorage.setItem('fm2_state',JSON.stringify({
     recipes:S.recipes,calendar:S.calendar,
-    shopChecked:S.shopChecked,startDate:S.startDate.toISOString()
+    shopChecked:S.shopChecked,aiOverrides:S.aiOverrides,startDate:S.startDate.toISOString()
   }));
 }
 
@@ -412,10 +416,11 @@ function renderRecipes() {
         <span class="tag tgenre">${r.genre}</span>
         ${r.isAI?'<span class="tag tai">AIおすすめ</span>':''}
       </div>
-      ${!r.isAI?`<div class="ract">
+      <div class="ract">
         <button class="btn btn-s btn-sm" onclick="openEdit('${r.id}')">✏️ 編集</button>
-        <button class="btn btn-d btn-sm" onclick="delRecipe('${r.id}')">🗑</button>
-      </div>`:''}
+        ${!r.isAI?`<button class="btn btn-d btn-sm" onclick="delRecipe('${r.id}')">🗑</button>`
+        :S.aiOverrides[r.id]?`<button class="btn btn-s btn-sm" onclick="resetAI('${r.id}')">↩ 元に戻す</button>`:''}
+      </div>
     </div>`).join('');
 }
 
@@ -425,7 +430,7 @@ function delRecipe(id){
   save();renderRecipes();toast('削除しました');
 }
 function openEdit(id){
-  const r=S.recipes.find(x=>x.id===id);if(!r)return;
+  const r=allRecipes().find(x=>x.id===id);if(!r)return;
   editingId=id;
   document.getElementById('eName').value=r.name;
   document.getElementById('eIng').value=r.ingredients.join('、');
@@ -436,13 +441,27 @@ function openEdit(id){
 }
 function closeEdit(){document.getElementById('editModal').classList.remove('open');editingId=null;}
 function saveEdit(){
-  const r=S.recipes.find(x=>x.id===editingId);if(!r)return;
-  r.name=document.getElementById('eName').value.trim();
-  r.ingredients=document.getElementById('eIng').value.split(/[、,，]/).map(s=>s.trim()).filter(Boolean);
-  r.category=document.querySelector('input[name=ecat]:checked')?.value||r.category;
-  r.cookTime=document.querySelector('input[name=etime]:checked')?.value||r.cookTime;
-  r.genre=document.querySelector('input[name=egenre]:checked')?.value||r.genre;
+  const name=document.getElementById('eName').value.trim();
+  const ingredients=document.getElementById('eIng').value.split(/[、,，]/).map(s=>s.trim()).filter(Boolean);
+  const category=document.querySelector('input[name=ecat]:checked')?.value;
+  const cookTime=document.querySelector('input[name=etime]:checked')?.value;
+  const genre=document.querySelector('input[name=egenre]:checked')?.value;
+  // AIおすすめの場合はaiOverridesに保存
+  const isAIDish=AI_DISHES.some(d=>d.id===editingId);
+  if(isAIDish){
+    const orig=AI_DISHES.find(d=>d.id===editingId);
+    S.aiOverrides[editingId]={name,ingredients,category:category||orig.category,cookTime:cookTime||orig.cookTime,genre:genre||orig.genre};
+  } else {
+    const r=S.recipes.find(x=>x.id===editingId);if(!r)return;
+    r.name=name;r.ingredients=ingredients;
+    r.category=category||r.category;r.cookTime=cookTime||r.cookTime;r.genre=genre||r.genre;
+  }
   save();renderRecipes();closeEdit();toast('保存しました');
+}
+function resetAI(id){
+  if(!confirm('AIおすすめの内容を元に戻しますか？'))return;
+  delete S.aiOverrides[id];
+  save();renderRecipes();toast('元に戻しました');
 }
 
 // ===== CALENDAR =====
