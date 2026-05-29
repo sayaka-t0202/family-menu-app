@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>家族の献立管理</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:14px}
+body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Yu Gothic UI',sans-serif;background:#f0f4f0;color:#333;min-height:100vh}
+:root{
+  --g:#43a047;--gd:#2e7d32;--gl:#e8f5e9;
+  --o:#fb8c00;--ol:#fff3e0;
+  --b:#1976d2;--bl:#e3f2fd;
+  --r:#e53935;--p:#8e24aa;--pl:#f3e5f5;
+  --gray:#757575;--border:#e0e0e0;
+  --shadow:0 1px 4px rgba(0,0,0,.12);--r8:8px
+}
+/* Header */
+.hd{background:linear-gradient(135deg,var(--g),var(--gd));color:#fff;padding:14px 16px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.hd h1{font-size:1.25rem;margin-bottom:2px}
+.hd p{font-size:.75rem;opacity:.9}
+/* Tab nav */
+.tnav{background:#fff;display:flex;border-bottom:2px solid var(--border);position:sticky;top:0;z-index:100;box-shadow:var(--shadow)}
+.tbtn{flex:1;padding:10px 6px;border:none;background:none;cursor:pointer;font-size:.75rem;color:var(--gray);border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .2s;display:flex;flex-direction:column;align-items:center;gap:2px;font-family:inherit}
+.tbtn .ti{font-size:1.1rem}
+.tbtn.active{color:var(--g);border-bottom-color:var(--g);font-weight:700}
+/* Content */
+.tc{display:none;padding:14px;max-width:1200px;margin:0 auto}
+.tc.active{display:block}
+/* Card */
+.card{background:#fff;border-radius:var(--r8);padding:14px;margin-bottom:14px;box-shadow:var(--shadow)}
+.ctitle{font-size:.95rem;font-weight:700;color:var(--gd);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+/* Buttons */
+.btn{padding:9px 18px;border:none;border-radius:6px;cursor:pointer;font-size:.85rem;font-weight:600;transition:all .2s;display:inline-flex;align-items:center;gap:5px;font-family:inherit}
+.btn-p{background:var(--g);color:#fff}.btn-p:hover{background:var(--gd)}
+.btn-s{background:#eee;color:#333}.btn-s:hover{background:#ddd}
+.btn-d{background:var(--r);color:#fff}
+.btn-o{background:var(--o);color:#fff}
+.btn-sm{padding:5px 10px;font-size:.78rem}
+/* Form */
+textarea,input[type=text],select{width:100%;padding:9px;border:1px solid var(--border);border-radius:6px;font-size:.85rem;font-family:inherit;outline:none;transition:border-color .2s}
+textarea:focus,input[type=text]:focus,select:focus{border-color:var(--g)}
+textarea{resize:vertical}
+label{display:block;font-size:.78rem;color:var(--gray);margin-bottom:3px}
+.fr{margin-bottom:10px}
+/* Radio pills */
+.rg{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.rl{display:flex;align-items:center;gap:3px;padding:5px 11px;border:1px solid var(--border);border-radius:14px;cursor:pointer;font-size:.78rem;transition:all .2s}
+.rl:has(input:checked){background:var(--g);color:#fff;border-color:var(--g)}
+.rl input{display:none}
+/* Tags */
+.tag{font-size:.68rem;padding:2px 7px;border-radius:10px;font-weight:600}
+.tcat{background:var(--gl);color:var(--gd)}
+.ttime-s{background:#e8f5e9;color:#2e7d32}
+.ttime-n{background:#fff8e1;color:#e65100}
+.ttime-l{background:#fce4ec;color:#c62828}
+.tgenre{background:var(--bl);color:var(--b)}
+.tai{background:var(--pl);color:var(--p)}
+/* Filters */
+.fbar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.fchip{padding:5px 12px;border:1px solid var(--border);border-radius:16px;font-size:.78rem;cursor:pointer;background:#fff;transition:all .2s}
+.fchip.active{background:var(--g);color:#fff;border-color:var(--g)}
+/* Recipe grid */
+.rgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:10px}
+.rcard{border:1px solid var(--border);border-radius:var(--r8);padding:11px;position:relative}
+.rcard.ai-c{border-color:var(--p);background:var(--pl)}
+.rname{font-weight:700;font-size:.9rem;margin-bottom:5px}
+.ring{font-size:.75rem;color:var(--gray);margin-bottom:7px}
+.rtags{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:7px}
+.ract{display:flex;gap:6px}
+/* Week tabs */
+.wtabs{display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap}
+.wtab{padding:7px 18px;border:2px solid var(--border);border-radius:16px;cursor:pointer;background:#fff;font-weight:600;font-size:.85rem;transition:all .2s;font-family:inherit}
+.wtab.active{background:var(--g);color:#fff;border-color:var(--g)}
+/* Calendar */
+.cal-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:8px}
+.cal-grid{display:grid;grid-template-columns:repeat(7,minmax(148px,1fr));gap:6px;min-width:720px}
+.dc{background:#fff;border-radius:var(--r8);overflow:hidden;box-shadow:var(--shadow)}
+.dh{background:var(--g);color:#fff;padding:7px 8px;text-align:center;font-weight:700;font-size:.82rem}
+.dh.sat{background:var(--b)}
+.dh.sun{background:var(--r)}
+.dh.today{background:var(--o)}
+.dbody{padding:8px}
+.memo-ta{font-size:.72rem;padding:5px;margin-bottom:5px;border:1px dashed var(--border);background:#fffde7;border-radius:4px;width:100%;resize:none;font-family:inherit;outline:none}
+.bdg-row{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:5px;min-height:4px}
+.bdg{font-size:.66rem;padding:2px 6px;border-radius:8px;font-weight:700}
+.bdg-q{background:#e3f2fd;color:#0d47a1}
+.bdg-nb{background:#fce4ec;color:#880e4f}
+.bdg-eo{background:var(--pl);color:var(--p)}
+.ms{margin-bottom:7px}
+.mlbl{font-size:.68rem;font-weight:700;color:#fff;padding:2px 7px;border-radius:4px;margin-bottom:3px;display:inline-block}
+.mlbl.bk{background:#ff8a65}
+.mlbl.ln{background:#42a5f5}
+.mlbl.dn{background:#66bb6a}
+.mi{font-size:.75rem;padding:4px 6px;margin-bottom:2px;border-radius:4px;background:#f9f9f9;cursor:pointer;border:1px solid transparent;transition:all .15s;line-height:1.3}
+.mi:hover{border-color:var(--g);background:var(--gl)}
+.mi.co{background:#e8f5e9;font-style:italic}
+.mi.ai-m{background:var(--pl)}
+.mi-lbl{color:var(--gray);font-size:.68rem}
+.bk-inp{font-size:.75rem;padding:4px 6px;border:1px dashed var(--border);background:#fff8e1;border-radius:4px;width:100%;font-family:inherit;outline:none}
+/* Modal */
+.movl{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center;padding:14px}
+.movl.open{display:flex}
+.modal{background:#fff;border-radius:12px;padding:18px;width:100%;max-width:480px;max-height:85vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.3)}
+.mtitle{font-size:1rem;font-weight:700;margin-bottom:14px;color:var(--gd)}
+.mlist{display:flex;flex-direction:column;gap:5px;max-height:50vh;overflow-y:auto}
+.mitem{padding:9px;border:1px solid var(--border);border-radius:6px;cursor:pointer;transition:all .15s;font-size:.82rem}
+.mitem:hover{background:var(--gl);border-color:var(--g)}
+.mitem.sel{background:var(--g);color:#fff}
+/* Shopping */
+.scat{margin-bottom:18px}
+.scat-t{font-size:.9rem;font-weight:700;color:var(--gd);padding:7px 11px;background:var(--gl);border-radius:6px;margin-bottom:7px}
+.si{display:flex;align-items:center;gap:9px;padding:7px 11px;border-radius:6px;transition:background .15s}
+.si:hover{background:#f5f5f5}
+.si input[type=checkbox]{width:17px;height:17px;cursor:pointer;accent-color:var(--g)}
+.si.chkd{text-decoration:line-through;color:var(--gray)}
+.si-n{flex:1;font-size:.85rem}
+/* Util */
+.flex{display:flex}.gap8{gap:8px}.fwrap{flex-wrap:wrap}.aic{align-items:center}
+.mt8{margin-top:8px}.mt12{margin-top:12px}
+.tc-gray{color:var(--gray)}.tsm{font-size:.78rem}
+.bold{font-weight:700}.wf{width:100%}
+.empty{text-align:center;padding:36px;color:var(--gray)}
+.empty .ei{font-size:2.5rem}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#323232;color:#fff;padding:11px 18px;border-radius:8px;font-size:.85rem;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1}
+.warn{color:var(--r);font-size:.7rem}
+@media(max-width:600px){
+  .tbtn{font-size:.68rem;padding:9px 3px}
+  .tc{padding:10px}
+  .rgrid{grid-template-columns:1fr}
+  .btn{padding:8px 14px}
+}
+</style>
+</head>
+<body>
+
+<header class="hd">
+  <h1>🍱 家族の献立管理</h1>
+  <p>スポーツ家族の2週間献立を自動生成＆管理</p>
+</header>
+
+<nav class="tnav">
+  <button class="tbtn active" onclick="switchTab('recipes')"><span class="ti">🥘</span>料理登録</button>
+  <button class="tbtn" onclick="switchTab('calendar')"><span class="ti">📅</span>献立カレンダー</button>
+  <button class="tbtn" onclick="switchTab('shopping')"><span class="ti">🛒</span>買い物リスト</button>
+</nav>
+
+<!-- TAB: 料理登録 -->
+<div id="tab-recipes" class="tc active">
+  <div class="card">
+    <div class="ctitle">📝 まとめて登録</div>
+    <div class="fr">
+      <label>1行1品で貼り付け（料理名｜食材1、食材2、…）</label>
+      <textarea id="bulkInput" rows="5" placeholder="唐揚げ｜鶏もも肉、醤油、みりん、にんにく、しょうが、片栗粉&#10;肉じゃが｜牛肉、じゃがいも、玉ねぎ、にんじん、醤油、みりん、砂糖"></textarea>
+    </div>
+    <div class="flex gap8 fwrap mt8">
+      <button class="btn btn-p" onclick="bulkRegister()">📥 登録する</button>
+      <button class="btn btn-s btn-sm" onclick="loadSamples()">📋 サンプルを読み込む</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="ctitle">🔍 料理一覧 <span id="recipeCount" class="tsm tc-gray"></span></div>
+    <div class="fr"><input type="text" id="searchInput" placeholder="料理名・食材で検索…" oninput="renderRecipes()"></div>
+    <div class="fbar" id="fbar">
+      <span class="fchip active" onclick="setFilter('all',this)">すべて</span>
+      <span class="fchip" onclick="setFilter('主菜',this)">主菜</span>
+      <span class="fchip" onclick="setFilter('副菜',this)">副菜</span>
+      <span class="fchip" onclick="setFilter('汁物',this)">汁物</span>
+      <span class="fchip" onclick="setFilter('お弁当メイン',this)">弁当メイン</span>
+      <span class="fchip" onclick="setFilter('お弁当副菜',this)">弁当副菜</span>
+      <span class="fchip" onclick="setFilter('フルーツ',this)">フルーツ</span>
+      <span class="fchip" onclick="setFilter('野菜',this)">野菜</span>
+      <span class="fchip" onclick="setFilter('ai',this)">💡 AIおすすめ</span>
+    </div>
+    <div id="recipeList" class="rgrid"></div>
+  </div>
+</div>
+
+<!-- TAB: 献立カレンダー -->
+<div id="tab-calendar" class="tc">
+  <div class="flex gap8 fwrap aic" style="margin-bottom:12px">
+    <div class="wtabs">
+      <button class="wtab active" id="wt1" onclick="switchWeek(1)">第1週</button>
+      <button class="wtab" id="wt2" onclick="switchWeek(2)">第2週</button>
+    </div>
+    <button class="btn btn-p" onclick="generateWeek()">✨ この週を自動生成</button>
+    <button class="btn btn-s btn-sm" onclick="clearWeek()">🗑 クリア</button>
+    <span id="wkRange" class="tsm tc-gray"></span>
+  </div>
+  <div class="cal-wrap">
+    <div id="calGrid" class="cal-grid"></div>
+  </div>
+</div>
+
+<!-- TAB: 買い物リスト -->
+<div id="tab-shopping" class="tc">
+  <div class="flex gap8 fwrap aic" style="margin-bottom:12px">
+    <div class="wtabs">
+      <button class="wtab active" id="swt1" onclick="switchShopWeek(1)">第1週</button>
+      <button class="wtab" id="swt2" onclick="switchShopWeek(2)">第2週</button>
+    </div>
+    <button class="btn btn-p" onclick="generateShopping()">🛒 リストを生成</button>
+    <button class="btn btn-s btn-sm" onclick="copyShopping()">📋 コピー</button>
+    <button class="btn btn-s btn-sm" onclick="clearChecked()">↩ チェックリセット</button>
+  </div>
+  <div id="shopList"></div>
+</div>
+
+<!-- Edit Modal -->
+<div id="editModal" class="movl" onclick="if(event.target===this)closeEdit()">
+  <div class="modal">
+    <div class="mtitle">✏️ 料理を編集</div>
+    <div class="fr"><label>料理名</label><input type="text" id="eName"></div>
+    <div class="fr"><label>食材（読点・カンマ区切り）</label><input type="text" id="eIng"></div>
+    <div class="fr">
+      <label>カテゴリ</label>
+      <div class="rg">
+        <label class="rl"><input type="radio" name="ecat" value="主菜">主菜</label>
+        <label class="rl"><input type="radio" name="ecat" value="副菜">副菜</label>
+        <label class="rl"><input type="radio" name="ecat" value="汁物">汁物</label>
+        <label class="rl"><input type="radio" name="ecat" value="主食">主食</label>
+        <label class="rl"><input type="radio" name="ecat" value="お弁当メイン">弁当メイン</label>
+        <label class="rl"><input type="radio" name="ecat" value="お弁当副菜">弁当副菜</label>
+        <label class="rl"><input type="radio" name="ecat" value="フルーツ">フルーツ</label>
+        <label class="rl"><input type="radio" name="ecat" value="野菜">野菜</label>
+      </div>
+    </div>
+    <div class="fr">
+      <label>調理時間</label>
+      <div class="rg">
+        <label class="rl"><input type="radio" name="etime" value="短い">⚡ 短い</label>
+        <label class="rl"><input type="radio" name="etime" value="普通">🕐 普通</label>
+        <label class="rl"><input type="radio" name="etime" value="長い">⏳ 長い</label>
+      </div>
+    </div>
+    <div class="fr">
+      <label>ジャンル</label>
+      <div class="rg">
+        <label class="rl"><input type="radio" name="egenre" value="和">和</label>
+        <label class="rl"><input type="radio" name="egenre" value="洋">洋</label>
+        <label class="rl"><input type="radio" name="egenre" value="中">中</label>
+        <label class="rl"><input type="radio" name="egenre" value="その他">その他</label>
+      </div>
+    </div>
+    <div class="flex gap8 mt12">
+      <button class="btn btn-p wf" onclick="saveEdit()">保存</button>
+      <button class="btn btn-s" onclick="closeEdit()">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<!-- Select Dish Modal -->
+<div id="selModal" class="movl" onclick="if(event.target===this)closeSel()">
+  <div class="modal">
+    <div class="mtitle" id="selTitle">料理を選択</div>
+    <input type="text" id="selSearch" placeholder="検索…" oninput="renderSelList()" style="margin-bottom:10px">
+    <div class="mlist" id="selList"></div>
+    <div class="flex gap8 mt12">
+      <button class="btn btn-s wf" onclick="closeSel()">キャンセル</button>
+      <button class="btn btn-d btn-sm" onclick="clearDish()">クリア</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+// ===== AI DISHES =====
+const AI_DISHES = [
+  {id:'ai0',name:'鶏むね肉のハーブ焼き',ingredients:['鶏むね肉','オリーブオイル','ハーブミックス','塩','こしょう','にんにく'],category:'主菜',cookTime:'短い',genre:'洋',isAI:true},
+  {id:'ai1',name:'サーモンのムニエル',ingredients:['サーモン','バター','レモン','小麦粉','塩','こしょう'],category:'主菜',cookTime:'短い',genre:'洋',isAI:true},
+  {id:'ai2',name:'チキンカレー',ingredients:['鶏もも肉','じゃがいも','玉ねぎ','にんじん','カレールー','サラダ油'],category:'主菜',cookTime:'普通',genre:'その他',isAI:true},
+  {id:'ai3',name:'豚肉と野菜の炒め物',ingredients:['豚こま肉','キャベツ','もやし','にんじん','醤油','みりん','ごま油'],category:'主菜',cookTime:'短い',genre:'和',isAI:true},
+  {id:'ai4',name:'鮭の塩焼き',ingredients:['鮭','塩','酒','レモン'],category:'主菜',cookTime:'短い',genre:'和',isAI:true},
+  {id:'ai5',name:'ハンバーグ',ingredients:['合びき肉','玉ねぎ','卵','パン粉','牛乳','塩','こしょう','ケチャップ','ウスターソース'],category:'主菜',cookTime:'普通',genre:'洋',isAI:true},
+  {id:'ai6',name:'麻婆豆腐',ingredients:['豆腐','豚ひき肉','豆板醤','甜麵醤','にんにく','しょうが','醤油','ごま油'],category:'主菜',cookTime:'短い',genre:'中',isAI:true},
+  {id:'ai7',name:'豚の生姜焼き',ingredients:['豚ロース薄切り','しょうが','醤油','みりん','酒','サラダ油'],category:'主菜',cookTime:'短い',genre:'和',isAI:true},
+  {id:'ai8',name:'回鍋肉',ingredients:['豚バラ肉','キャベツ','ピーマン','甜麵醤','豆板醤','にんにく','ごま油'],category:'主菜',cookTime:'短い',genre:'中',isAI:true},
+  {id:'ai9',name:'海老チリ',ingredients:['えび','豆板醤','ケチャップ','にんにく','しょうが','ねぎ','ごま油','卵白'],category:'主菜',cookTime:'普通',genre:'中',isAI:true},
+  {id:'ai10',name:'親子丼',ingredients:['鶏もも肉','玉ねぎ','卵','醤油','みりん','砂糖','だし','ご飯'],category:'主菜',cookTime:'短い',genre:'和',isAI:true},
+  {id:'ai11',name:'ぶりの照り焼き',ingredients:['ぶり','醤油','みりん','砂糖','酒'],category:'主菜',cookTime:'短い',genre:'和',isAI:true},
+  {id:'ai12',name:'チキンソテー',ingredients:['鶏もも肉','塩','こしょう','オリーブオイル','にんにく','ローズマリー'],category:'主菜',cookTime:'普通',genre:'洋',isAI:true},
+  {id:'ai13',name:'ポテトサラダ',ingredients:['じゃがいも','マヨネーズ','きゅうり','ハム','玉ねぎ','塩','こしょう'],category:'副菜',cookTime:'普通',genre:'洋',isAI:true},
+  {id:'ai14',name:'ほうれん草のごま和え',ingredients:['ほうれん草','すりごま','醤油','みりん','砂糖'],category:'副菜',cookTime:'短い',genre:'和',isAI:true},
+  {id:'ai15',name:'きんぴらごぼう',ingredients:['ごぼう','にんじん','醤油','みりん','砂糖','ごま油','一味唐辛子'],category:'副菜',cookTime:'普通',genre:'和',isAI:true},
+  {id:'ai16',name:'ひじきの煮物',ingredients:['ひじき','にんじん','油揚げ','大豆水煮','醤油','みりん','砂糖','だし'],category:'副菜',cookTime:'普通',genre:'和',isAI:true},
+  {id:'ai17',name:'かぼちゃの煮物',ingredients:['かぼちゃ','醤油','みりん','砂糖','だし'],category:'副菜',cookTime:'普通',genre:'和',isAI:true},
+  {id:'ai18',name:'ブロッコリーのごまマヨ和え',ingredients:['ブロッコリー','マヨネーズ','すりごま','醤油'],category:'副菜',cookTime:'短い',genre:'和',isAI:true},
+  {id:'ai19',name:'切り干し大根の煮物',ingredients:['切り干し大根','にんじん','油揚げ','醤油','みりん','砂糖','だし'],category:'副菜',cookTime:'普通',genre:'和',isAI:true},
+  {id:'ai20',name:'豆腐とわかめの味噌汁',ingredients:['豆腐','わかめ','味噌','だし','ねぎ'],category:'汁物',cookTime:'短い',genre:'和',isAI:true},
+  {id:'ai21',name:'豚汁',ingredients:['豚こま肉','ごぼう','にんじん','じゃがいも','大根','味噌','だし','ごま油'],category:'汁物',cookTime:'普通',genre:'和',isAI:true},
+  {id:'ai22',name:'なめこの味噌汁',ingredients:['なめこ','豆腐','味噌','だし','ねぎ'],category:'汁物',cookTime:'短い',genre:'和',isAI:true},
+  {id:'ai23',name:'コーンスープ',ingredients:['コーン缶','牛乳','バター','塩','こしょう'],category:'汁物',cookTime:'短い',genre:'洋',isAI:true},
+  {id:'ai24',name:'玉ねぎとわかめの味噌汁',ingredients:['玉ねぎ','わかめ','味噌','だし'],category:'汁物',cookTime:'短い',genre:'和',isAI:true},
+  {id:'ai25',name:'卵焼き',ingredients:['卵','砂糖','醤油','みりん','サラダ油'],category:'お弁当副菜',cookTime:'短い',genre:'和',isAI:true},
+  {id:'ai26',name:'ブロッコリーのおかか和え',ingredients:['ブロッコリー','かつお節','醤油'],category:'お弁当副菜',cookTime:'短い',genre:'和',isAI:true},
+  {id:'ai27',name:'ウインナー炒め',ingredients:['ウインナー','ピーマン','サラダ油','塩','こしょう'],category:'お弁当副菜',cookTime:'短い',genre:'洋',isAI:true},
+  {id:'ai28',name:'ミニハンバーグ',ingredients:['合びき肉','玉ねぎ','卵','パン粉','牛乳','塩','こしょう'],category:'お弁当メイン',cookTime:'普通',genre:'洋',isAI:true},
+  {id:'ai29',name:'鶏の唐揚げ（弁当用）',ingredients:['鶏もも肉','醤油','みりん','にんにく','しょうが','片栗粉'],category:'お弁当メイン',cookTime:'普通',genre:'和',isAI:true},
+  {id:'ai30',name:'プチトマト',ingredients:['プチトマト'],category:'野菜',cookTime:'短い',genre:'その他',isAI:true},
+  {id:'ai31',name:'グリーンサラダ',ingredients:['レタス','きゅうり','トマト','ドレッシング'],category:'野菜',cookTime:'短い',genre:'洋',isAI:true},
+  {id:'ai32',name:'いちご',ingredients:['いちご'],category:'フルーツ',cookTime:'短い',genre:'その他',isAI:true},
+  {id:'ai33',name:'みかん',ingredients:['みかん'],category:'フルーツ',cookTime:'短い',genre:'その他',isAI:true},
+  {id:'ai34',name:'バナナ',ingredients:['バナナ'],category:'フルーツ',cookTime:'短い',genre:'その他',isAI:true},
+  {id:'ai35',name:'キウイ',ingredients:['キウイ'],category:'フルーツ',cookTime:'短い',genre:'その他',isAI:true},
+  {id:'ai36',name:'りんご',ingredients:['りんご'],category:'フルーツ',cookTime:'短い',genre:'その他',isAI:true},
+];
+
+// ===== STATE =====
+let S = { recipes:[], calendar:{}, shopChecked:{1:{},2:{}}, startDate:getMonday() };
+
+function getMonday() {
+  const d = new Date(); const dow = d.getDay();
+  d.setDate(d.getDate() + (dow===0?-6:1-dow));
+  d.setHours(0,0,0,0); return d;
+}
+function dk(date) { return date.toISOString().split('T')[0]; }
+function getWeekDates(w) {
+  const dates=[]; const s=new Date(S.startDate);
+  s.setDate(s.getDate()+(w-1)*7);
+  for(let i=0;i<7;i++){const d=new Date(s);d.setDate(d.getDate()+i);dates.push(d);}
+  return dates;
+}
+function allRecipes() { return [...S.recipes,...AI_DISHES]; }
+
+function load() {
+  const raw=localStorage.getItem('fm2_state');
+  if(!raw)return;
+  const p=JSON.parse(raw);
+  S.recipes=p.recipes||[];
+  S.calendar=p.calendar||{};
+  S.shopChecked=p.shopChecked||{1:{},2:{}};
+  if(p.startDate)S.startDate=new Date(p.startDate);
+}
+function save() {
+  localStorage.setItem('fm2_state',JSON.stringify({
+    recipes:S.recipes,calendar:S.calendar,
+    shopChecked:S.shopChecked,startDate:S.startDate.toISOString()
+  }));
+}
+
+// ===== RECIPES =====
+let curFilter='all', editingId=null;
+
+function bulkRegister() {
+  const text=document.getElementById('bulkInput').value.trim();
+  if(!text){toast('テキストを入力してください');return;}
+  let n=0;
+  text.split('\n').forEach(line=>{
+    line=line.trim().replace(/^[・\-\*]\s*/,'');
+    const parts=line.split(/[｜|]/);
+    const name=parts[0]?.trim(); if(!name)return;
+    if(S.recipes.some(r=>r.name===name))return;
+    const ing=parts[1]?parts[1].split(/[、,，]/).map(s=>s.trim()).filter(Boolean):[];
+    S.recipes.push({id:'r'+Date.now()+Math.random().toString(36).slice(2,7),name,ingredients:ing,category:'主菜',cookTime:'普通',genre:'和',isAI:false});
+    n++;
+  });
+  save(); renderRecipes();
+  document.getElementById('bulkInput').value='';
+  toast(n+'品を登録しました');
+}
+
+function loadSamples() {
+  document.getElementById('bulkInput').value=[
+    '唐揚げ｜鶏もも肉、醤油、みりん、にんにく、しょうが、片栗粉',
+    '肉じゃが｜牛肉、じゃがいも、玉ねぎ、にんじん、醤油、みりん、砂糖',
+    '豚の角煮｜豚バラ肉、醤油、みりん、酒、砂糖、しょうが',
+    '野菜炒め｜キャベツ、もやし、にんじん、ピーマン、醤油、ごま油、塩こしょう',
+    '鶏の照り焼き｜鶏もも肉、醤油、みりん、砂糖、サラダ油',
+    '豚汁｜豚こま肉、ごぼう、にんじん、じゃがいも、大根、味噌、だし、ごま油',
+    '玉ねぎの味噌汁｜玉ねぎ、わかめ、味噌、だし',
+    'けんちん汁｜大根、にんじん、ごぼう、こんにゃく、豆腐、醤油、みりん、味噌',
+    'ほうれん草のおひたし｜ほうれん草、かつお節、醤油、みりん',
+    'かぼちゃの煮物｜かぼちゃ、醤油、みりん、砂糖、だし',
+    '卵焼き｜卵、砂糖、醤油、みりん、サラダ油',
+    'ウインナー炒め｜ウインナー、ピーマン、玉ねぎ、醤油、サラダ油',
+    'いちご｜いちご',
+    'みかん｜みかん',
+    'バナナ｜バナナ',
+    'プチトマト｜プチトマト',
+    'ブロッコリーのおかか和え｜ブロッコリー、かつお節、醤油',
+  ].join('\n');
+  toast('サンプルを読み込みました。「登録する」を押して追加してください');
+}
+
+function setFilter(f,el){
+  curFilter=f;
+  document.querySelectorAll('.fchip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  renderRecipes();
+}
+
+function renderRecipes() {
+  const q=document.getElementById('searchInput').value.toLowerCase();
+  let rs=allRecipes();
+  if(curFilter==='ai') rs=rs.filter(r=>r.isAI);
+  else if(curFilter!=='all') rs=rs.filter(r=>r.category===curFilter);
+  if(q) rs=rs.filter(r=>r.name.toLowerCase().includes(q)||r.ingredients.some(i=>i.toLowerCase().includes(q)));
+  document.getElementById('recipeCount').textContent='（'+rs.length+'品）';
+  const el=document.getElementById('recipeList');
+  if(!rs.length){el.innerHTML='<div class="empty"><div class="ei">🥗</div><p>料理が見つかりません</p></div>';return;}
+  const tc={'短い':'ttime-s','普通':'ttime-n','長い':'ttime-l'};
+  el.innerHTML=rs.map(r=>`
+    <div class="rcard${r.isAI?' ai-c':''}">
+      <div class="rname">${r.isAI?'💡 ':''}${r.name}</div>
+      <div class="ring">${r.ingredients.join('、')}</div>
+      <div class="rtags">
+        <span class="tag tcat">${r.category}</span>
+        <span class="tag ${tc[r.cookTime]}">${r.cookTime==='短い'?'⚡':r.cookTime==='長い'?'⏳':'🕐'} ${r.cookTime}</span>
+        <span class="tag tgenre">${r.genre}</span>
+        ${r.isAI?'<span class="tag tai">AIおすすめ</span>':''}
+      </div>
+      ${!r.isAI?`<div class="ract">
+        <button class="btn btn-s btn-sm" onclick="openEdit('${r.id}')">✏️ 編集</button>
+        <button class="btn btn-d btn-sm" onclick="delRecipe('${r.id}')">🗑</button>
+      </div>`:''}
+    </div>`).join('');
+}
+
+function delRecipe(id){
+  if(!confirm('この料理を削除しますか？'))return;
+  S.recipes=S.recipes.filter(r=>r.id!==id);
+  save();renderRecipes();toast('削除しました');
+}
+function openEdit(id){
+  const r=S.recipes.find(x=>x.id===id);if(!r)return;
+  editingId=id;
+  document.getElementById('eName').value=r.name;
+  document.getElementById('eIng').value=r.ingredients.join('、');
+  document.querySelectorAll('input[name=ecat]').forEach(x=>x.checked=x.value===r.category);
+  document.querySelectorAll('input[name=etime]').forEach(x=>x.checked=x.value===r.cookTime);
+  document.querySelectorAll('input[name=egenre]').forEach(x=>x.checked=x.value===r.genre);
+  document.getElementById('editModal').classList.add('open');
+}
+function closeEdit(){document.getElementById('editModal').classList.remove('open');editingId=null;}
+function saveEdit(){
+  const r=S.recipes.find(x=>x.id===editingId);if(!r)return;
+  r.name=document.getElementById('eName').value.trim();
+  r.ingredients=document.getElementById('eIng').value.split(/[、,，]/).map(s=>s.trim()).filter(Boolean);
+  r.category=document.querySelector('input[name=ecat]:checked')?.value||r.category;
+  r.cookTime=document.querySelector('input[name=etime]:checked')?.value||r.cookTime;
+  r.genre=document.querySelector('input[name=egenre]:checked')?.value||r.genre;
+  save();renderRecipes();closeEdit();toast('保存しました');
+}
+
+// ===== CALENDAR =====
+let curWeek=1;
+const DAYS=['日','月','火','水','木','金','土'];
+
+function switchWeek(w){
+  curWeek=w;
+  document.getElementById('wt1').classList.toggle('active',w===1);
+  document.getElementById('wt2').classList.toggle('active',w===2);
+  renderCal();
+}
+
+function renderCal(){
+  const dates=getWeekDates(curWeek);
+  const fmt=d=>`${d.getMonth()+1}/${d.getDate()}`;
+  document.getElementById('wkRange').textContent=`${fmt(dates[0])}（月）〜${fmt(dates[6])}（日）`;
+  document.getElementById('calGrid').innerHTML=dates.map(d=>renderDay(d)).join('');
+}
+
+function renderDay(date){
+  const key=dk(date);
+  const day=S.calendar[key]||{};
+  const memo=day.memo||'';
+  const bk=day.breakfast||'';
+  const lunch=day.lunch||{};
+  const dinner=day.dinner||{};
+  const dow=date.getDay();
+  const today=new Date();today.setHours(0,0,0,0);
+  const isToday=date.getTime()===today.getTime();
+  const dhCls='dh'+(isToday?' today':dow===0?' sun':dow===6?' sat':'');
+  const isQ=/仕事|不在/.test(memo);
+  const isNB=/お弁当なし/.test(memo);
+  const isEO=/外食/.test(memo);
+  let bdgs='';
+  if(isQ)bdgs+='<span class="bdg bdg-q">⏱ 時短デー</span>';
+  if(isNB)bdgs+='<span class="bdg bdg-nb">🍱 弁当なし</span>';
+  if(isEO)bdgs+='<span class="bdg bdg-eo">🍽 外食</span>';
+
+  // Lunch HTML
+  let lunchHtml='';
+  if(isNB){
+    lunchHtml='<div class="mi" style="color:var(--gray);text-align:center">ー（弁当なし）</div>';
+  }else{
+    const lSlots=[
+      {slot:'main',lbl:'メイン',cats:'お弁当メイン,主菜'},
+      {slot:'side',lbl:'副菜',cats:'お弁当副菜,副菜'},
+      {slot:'vegetable',lbl:'野菜',cats:'野菜,副菜'},
+      {slot:'fruit',lbl:'フルーツ',cats:'フルーツ'},
+    ];
+    lunchHtml=lSlots.map(({slot,lbl,cats})=>{
+      const id=lunch[slot];
+      const isCO=lunch[slot+'_co'];
+      let nm='―';
+      if(id){const r=allRecipes().find(x=>x.id===id);nm=r?r.name:'―';}
+      const dispNm=isCO?`← 昨夜の${nm}`:nm;
+      const aiTag=id&&allRecipes().find(x=>x.id===id)?.isAI?'<span class="bdg tai" style="font-size:.62rem;margin-left:2px">💡</span>':'';
+      return `<div class="mi${isCO?' co':''}" data-key="${key}" data-meal="lunch" data-slot="${slot}" data-cats="${cats}" onclick="mealClick(this)"><span class="mi-lbl">${lbl}：</span>${dispNm}${aiTag}</div>`;
+    }).join('');
+  }
+
+  // Dinner HTML
+  let dinnerHtml='';
+  if(isEO){
+    dinnerHtml='<div class="mi" style="color:var(--p);text-align:center;font-weight:700">🍽 外食</div>';
+  }else{
+    const dSlots=[
+      {slot:'main',lbl:'主菜',cats:'主菜'},
+      {slot:'soup',lbl:'汁物',cats:'汁物'},
+      {slot:'side1',lbl:'副菜①',cats:'副菜'},
+      {slot:'side2',lbl:'副菜②',cats:'副菜'},
+    ];
+    dinnerHtml=dSlots.map(({slot,lbl,cats})=>{
+      const id=dinner[slot];
+      let nm='―';
+      if(id){const r=allRecipes().find(x=>x.id===id);nm=r?r.name:'―';}
+      const aiTag=id&&allRecipes().find(x=>x.id===id)?.isAI?'<span class="bdg tai" style="font-size:.62rem;margin-left:2px">💡</span>':'';
+      return `<div class="mi" data-key="${key}" data-meal="dinner" data-slot="${slot}" data-cats="${cats}" onclick="mealClick(this)"><span class="mi-lbl">${lbl}：</span>${nm}${aiTag}</div>`;
+    }).join('');
+  }
+
+  return `<div class="dc">
+    <div class="${dhCls}">${date.getMonth()+1}/${date.getDate()}（${DAYS[dow]}）${isToday?'<br><small>今日</small>':''}</div>
+    <div class="dbody">
+      <textarea class="memo-ta" rows="2" placeholder="📝 仕事・外食・お弁当なし…"
+        oninput="saveMemo('${key}',this.value)"
+        onblur="blurMemo('${key}')">${memo}</textarea>
+      <div class="bdg-row">${bdgs}</div>
+      <div class="ms"><span class="mlbl bk">🌅 朝</span>
+        <input class="bk-inp" type="text" value="${bk}" placeholder="自由記入" onchange="saveBk('${key}',this.value)">
+      </div>
+      <div class="ms"><span class="mlbl ln">🌞 昼（お弁当）</span>${lunchHtml}</div>
+      <div class="ms"><span class="mlbl dn">🌙 夕食</span>${dinnerHtml}</div>
+    </div>
+  </div>`;
+}
+
+function saveMemo(key,val){
+  if(!S.calendar[key])S.calendar[key]={};
+  S.calendar[key].memo=val;
+  save();
+}
+let memoTimer={};
+function blurMemo(key){
+  // Re-render after memo change to update badges
+  clearTimeout(memoTimer[key]);
+  memoTimer[key]=setTimeout(()=>renderCal(),100);
+}
+function saveBk(key,val){
+  if(!S.calendar[key])S.calendar[key]={};
+  S.calendar[key].breakfast=val;
+  save();
+}
+
+// ===== AUTO GENERATE =====
+function rnd(arr){if(!arr||!arr.length)return null;return arr[Math.floor(Math.random()*arr.length)];}
+
+function generateWeek(){
+  const dates=getWeekDates(curWeek);
+  const otherDates=getWeekDates(curWeek===1?2:1);
+  const rs=allRecipes();
+
+  // Build used sets from OTHER week
+  const used14=new Set(); // mains (14-day)
+  const used7=new Set();  // others (7-day)
+  otherDates.forEach(d=>{
+    const data=S.calendar[dk(d)];
+    if(!data)return;
+    if(data.dinner){
+      if(data.dinner.main)used14.add(data.dinner.main);
+      if(data.dinner.soup)used7.add(data.dinner.soup);
+      if(data.dinner.side1)used7.add(data.dinner.side1);
+      if(data.dinner.side2)used7.add(data.dinner.side2);
+    }
+    if(data.lunch){
+      if(data.lunch.main&&!data.lunch.main_co)used7.add(data.lunch.main);
+      if(data.lunch.side&&!data.lunch.side_co)used7.add(data.lunch.side);
+      if(data.lunch.vegetable)used7.add(data.lunch.vegetable);
+      if(data.lunch.fruit)used7.add(data.lunch.fruit);
+    }
+  });
+
+  const genreSeq=['和','洋','中','和','洋','和','その他'];
+
+  dates.forEach((date,i)=>{
+    const key=dk(date);
+    if(!S.calendar[key])S.calendar[key]={};
+    const day=S.calendar[key];
+    const memo=day.memo||'';
+    const isQ=/仕事|不在/.test(memo);
+    const isNB=/お弁当なし/.test(memo);
+    const isEO=/外食/.test(memo);
+    const dow=date.getDay();
+    const isWE=dow===0||dow===6;
+
+    // DINNER
+    if(!isEO){
+      if(!day.dinner)day.dinner={};
+      const tgt=genreSeq[i%genreSeq.length];
+
+      // Main
+      let mCands=rs.filter(r=>r.category==='主菜'&&!used14.has(r.id));
+      if(isQ) mCands=mCands.filter(r=>r.cookTime==='短い');
+      else if(!isWE) mCands=mCands.filter(r=>r.cookTime!=='長い');
+      let mByG=mCands.filter(r=>r.genre===tgt);
+      const main=rnd(mByG.length?mByG:mCands)||rnd(rs.filter(r=>r.category==='主菜'));
+      day.dinner.main=main?.id||null;
+      if(main)used14.add(main.id);
+
+      // Soup
+      let sCands=rs.filter(r=>r.category==='汁物'&&!used7.has(r.id));
+      if(isQ)sCands=sCands.filter(r=>r.cookTime==='短い');
+      const soup=rnd(sCands.length?sCands:rs.filter(r=>r.category==='汁物'));
+      day.dinner.soup=soup?.id||null;
+      if(soup)used7.add(soup.id);
+
+      // Sides
+      let sdCands=rs.filter(r=>r.category==='副菜'&&!used7.has(r.id));
+      if(isQ)sdCands=sdCands.filter(r=>r.cookTime==='短い');
+      const s1=rnd(sdCands); if(s1){used7.add(s1.id);sdCands=sdCands.filter(r=>r.id!==s1.id);}
+      const s2=rnd(sdCands.length?sdCands:rs.filter(r=>r.category==='副菜'&&r.id!==s1?.id));
+      day.dinner.side1=s1?.id||null;
+      day.dinner.side2=s2?.id||null;
+      if(s2)used7.add(s2.id);
+    }
+
+    // LUNCH
+    if(!isNB){
+      if(!day.lunch)day.lunch={};
+      // Carryover from prev day dinner
+      const prev=new Date(date);prev.setDate(prev.getDate()-1);
+      const prevKey=dk(prev);
+      const prevDay=S.calendar[prevKey];
+      const prevMemo=prevDay?.memo||'';
+      const prevEO=/外食/.test(prevMemo);
+      const prevDinner=prevDay?.dinner;
+
+      let coMain=null,coSide=null;
+      if(prevDinner&&!prevEO){
+        if(prevDinner.main)coMain=prevDinner.main;
+        if(prevDinner.side1)coSide=prevDinner.side1;
+      }
+
+      if(coMain){day.lunch.main=coMain;day.lunch.main_co=true;}
+      else{
+        let bc=rs.filter(r=>r.category==='お弁当メイン'&&!used7.has(r.id));
+        if(!bc.length)bc=rs.filter(r=>r.category==='お弁当メイン');
+        const bm=rnd(bc);
+        day.lunch.main=bm?.id||null;day.lunch.main_co=false;
+        if(bm)used7.add(bm.id);
+      }
+
+      if(coSide){day.lunch.side=coSide;day.lunch.side_co=true;}
+      else{
+        let bc=rs.filter(r=>r.category==='お弁当副菜'&&!used7.has(r.id));
+        if(!bc.length)bc=rs.filter(r=>r.category==='お弁当副菜');
+        const bs=rnd(bc);
+        day.lunch.side=bs?.id||null;day.lunch.side_co=false;
+        if(bs)used7.add(bs.id);
+      }
+
+      let vg=rs.filter(r=>r.category==='野菜'&&!used7.has(r.id));
+      if(!vg.length)vg=rs.filter(r=>r.category==='野菜');
+      const v=rnd(vg);day.lunch.vegetable=v?.id||null;if(v)used7.add(v.id);
+
+      let fr=rs.filter(r=>r.category==='フルーツ'&&!used7.has(r.id));
+      if(!fr.length)fr=rs.filter(r=>r.category==='フルーツ');
+      const f=rnd(fr);day.lunch.fruit=f?.id||null;if(f)used7.add(f.id);
+    }
+  });
+
+  save();renderCal();toast(`第${curWeek}週の献立を生成しました`);
+}
+
+function clearWeek(){
+  if(!confirm(`第${curWeek}週の献立をクリアしますか？`))return;
+  getWeekDates(curWeek).forEach(d=>{
+    const k=dk(d);
+    if(S.calendar[k]){S.calendar[k].lunch={};S.calendar[k].dinner={};}
+  });
+  save();renderCal();toast('クリアしました');
+}
+
+// ===== SELECT MODAL =====
+let selCtx={key:null,meal:null,slot:null,cats:[]};
+
+function mealClick(el){
+  selCtx={key:el.dataset.key,meal:el.dataset.meal,slot:el.dataset.slot,cats:el.dataset.cats.split(',')};
+  const titles={main:'メイン料理',soup:'汁物',side1:'副菜①',side2:'副菜②',side:'副菜',vegetable:'野菜',fruit:'フルーツ'};
+  document.getElementById('selTitle').textContent=(selCtx.meal==='lunch'?'【お弁当】':'【夕食】')+(titles[selCtx.slot]||selCtx.slot)+'を選択';
+  document.getElementById('selSearch').value='';
+  renderSelList();
+  document.getElementById('selModal').classList.add('open');
+}
+
+function renderSelList(){
+  const q=document.getElementById('selSearch').value.toLowerCase();
+  const {key,meal,slot,cats}=selCtx;
+  let rs=allRecipes().filter(r=>cats.includes(r.category));
+  if(q)rs=rs.filter(r=>r.name.toLowerCase().includes(q)||r.ingredients.some(i=>i.toLowerCase().includes(q)));
+  rs.sort((a,b)=>{const o={短い:0,普通:1,長い:2};return o[a.cookTime]-o[b.cookTime];});
+  const cur=S.calendar[key]?.[meal]?.[slot];
+  document.getElementById('selList').innerHTML=rs.length?rs.map(r=>{
+    const sel=cur===r.id;
+    const ti=r.cookTime==='短い'?'⚡':r.cookTime==='長い'?'⏳':'🕐';
+    const warn=r.cookTime==='長い'?'<br><span class="warn">⚠️ 時間がかかります</span>':'';
+    return `<div class="mitem${sel?' sel':''}" onclick="selDish('${r.id}')">
+      ${r.isAI?'💡 ':''}${r.name} ${ti}${r.genre}
+      <br><span style="font-size:.72rem;color:${sel?'#ddd':'var(--gray)'}">【${r.category}】${r.ingredients.slice(0,4).join('、')}${r.ingredients.length>4?'…':''}</span>
+      ${warn}
+    </div>`;
+  }).join(''):'<div class="empty" style="padding:20px"><p>該当なし</p><p class="tsm tc-gray">料理登録から追加してください</p></div>';
+}
+
+function selDish(id){
+  const {key,meal,slot}=selCtx;
+  if(!S.calendar[key])S.calendar[key]={};
+  if(!S.calendar[key][meal])S.calendar[key][meal]={};
+  S.calendar[key][meal][slot]=id;
+  if(meal==='lunch'){
+    if(slot==='main')S.calendar[key].lunch.main_co=false;
+    if(slot==='side')S.calendar[key].lunch.side_co=false;
+  }
+  save();closeSel();renderCal();
+}
+
+function clearDish(){
+  const {key,meal,slot}=selCtx;
+  if(S.calendar[key]?.[meal]){
+    S.calendar[key][meal][slot]=null;
+    if(meal==='lunch'){
+      if(slot==='main')S.calendar[key].lunch.main_co=false;
+      if(slot==='side')S.calendar[key].lunch.side_co=false;
+    }
+  }
+  save();closeSel();renderCal();
+}
+function closeSel(){document.getElementById('selModal').classList.remove('open');}
+
+// ===== SHOPPING LIST =====
+let curShopW=1;
+
+const ING_CATS={
+  '肉類':['鶏','豚','牛','合びき','ひき肉','ウインナー','ソーセージ','ベーコン','ハム','チャーシュー'],
+  '魚介類':['鮭','サーモン','ぶり','えび','いか','たこ','あさり','ツナ','シーフード','さば','あじ','かつお'],
+  '野菜・豆腐類':['キャベツ','にんじん','玉ねぎ','じゃがいも','さつまいも','かぼちゃ','ほうれん草','ブロッコリー','もやし','ごぼう','大根','ねぎ','きゅうり','トマト','ピーマン','レタス','白菜','しいたけ','えのき','しめじ','こんにゃく','豆腐','油揚げ','ひじき','切り干し','大豆','なめこ','わかめ'],
+  '果物':['いちご','みかん','りんご','バナナ','キウイ','ぶどう','メロン','もも','レモン'],
+  '卵・乳製品':['卵','牛乳','バター','生クリーム','チーズ','ヨーグルト'],
+  '調味料・その他':['醤油','みりん','酒','砂糖','塩','こしょう','味噌','だし','ごま油','サラダ油','オリーブオイル','酢','マヨネーズ','ケチャップ','ウスターソース','豆板醤','甜麵醤','カレールー','パン粉','片栗粉','小麦粉','にんにく','しょうが','ハーブ','ドレッシング','すりごま','コーン缶','一味唐辛子','ローズマリー','卵白'],
+};
+const CAT_EMOJI={'肉類':'🥩','魚介類':'🐟','野菜・豆腐類':'🥦','果物':'🍎','卵・乳製品':'🥚','調味料・その他':'🧂','その他':'📦'};
+
+function categIng(name){
+  for(const[cat,kws]of Object.entries(ING_CATS)){
+    if(kws.some(k=>name.includes(k)))return cat;
+  }
+  return 'その他';
+}
+
+function switchShopWeek(w){
+  curShopW=w;
+  document.getElementById('swt1').classList.toggle('active',w===1);
+  document.getElementById('swt2').classList.toggle('active',w===2);
+  generateShopping();
+}
+
+function collectIngredients(weekNum){
+  const dates=getWeekDates(weekNum);
+  const rs=allRecipes();
+  const map={};
+  function add(id){
+    if(!id)return;
+    const r=rs.find(x=>x.id===id);
+    if(!r)return;
+    r.ingredients.forEach(i=>{map[i]=(map[i]||0)+1;});
+  }
+  dates.forEach(date=>{
+    const key=dk(date);
+    const day=S.calendar[key]||{};
+    const memo=day.memo||'';
+    const isNB=/お弁当なし/.test(memo);
+    const isEO=/外食/.test(memo);
+    if(!isEO&&day.dinner){['main','soup','side1','side2'].forEach(s=>add(day.dinner[s]));}
+    if(!isNB&&day.lunch){
+      if(!day.lunch.main_co)add(day.lunch.main);
+      if(!day.lunch.side_co)add(day.lunch.side);
+      add(day.lunch.vegetable);add(day.lunch.fruit);
+    }
+  });
+  return map;
+}
+
+function generateShopping(){
+  const map=collectIngredients(curShopW);
+  const catMap={};
+  Object.keys(ING_CATS).forEach(c=>catMap[c]=[]);catMap['その他']=[];
+  Object.entries(map).forEach(([name,cnt])=>{
+    const c=categIng(name);
+    if(!catMap[c])catMap[c]=[];
+    catMap[c].push({name,cnt});
+  });
+  const checked=S.shopChecked[curShopW]||{};
+  let html='';let any=false;
+  Object.entries(catMap).forEach(([cat,items])=>{
+    if(!items.length)return;any=true;
+    items.sort((a,b)=>a.name.localeCompare(b.name,'ja'));
+    html+=`<div class="scat"><div class="scat-t">${CAT_EMOJI[cat]||'📦'} ${cat}</div>`;
+    items.forEach(({name,cnt})=>{
+      const ck=checked[name]||false;
+      html+=`<div class="si${ck?' chkd':''}" id="si_${encodeURIComponent(name)}">
+        <input type="checkbox"${ck?' checked':''} onchange="toggleShop('${name.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}',this.checked)">
+        <span class="si-n">${name}</span>
+        ${cnt>1?`<span class="tsm tc-gray">×${cnt}</span>`:''}
+      </div>`;
+    });
+    html+='</div>';
+  });
+  document.getElementById('shopList').innerHTML=any?html:'<div class="empty"><div class="ei">🛒</div><p>献立カレンダーで料理を設定してから生成してください</p></div>';
+}
+
+function toggleShop(name,ck){
+  if(!S.shopChecked[curShopW])S.shopChecked[curShopW]={};
+  S.shopChecked[curShopW][name]=ck;save();
+  const el=document.getElementById('si_'+encodeURIComponent(name));
+  if(el)el.classList.toggle('chkd',ck);
+}
+function clearChecked(){S.shopChecked[curShopW]={};save();generateShopping();}
+
+function copyShopping(){
+  const map=collectIngredients(curShopW);
+  const catMap={};
+  Object.keys(ING_CATS).forEach(c=>catMap[c]=[]);catMap['その他']=[];
+  Object.entries(map).forEach(([name,cnt])=>{
+    const c=categIng(name);if(!catMap[c])catMap[c]=[];catMap[c].push({name,cnt});
+  });
+  let txt=`【買い物リスト 第${curShopW}週】\n\n`;
+  Object.entries(catMap).forEach(([cat,items])=>{
+    if(!items.length)return;
+    txt+=`▼ ${cat}\n`;
+    items.sort((a,b)=>a.name.localeCompare(b.name,'ja'));
+    items.forEach(({name,cnt})=>{txt+=`  □ ${name}${cnt>1?`（×${cnt}）`:''}\n`;});
+    txt+='\n';
+  });
+  navigator.clipboard?.writeText(txt).then(()=>toast('買い物リストをコピーしました')).catch(()=>{
+    const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();
+    document.execCommand('copy');document.body.removeChild(ta);toast('買い物リストをコピーしました');
+  });
+}
+
+// ===== TAB SWITCH =====
+function switchTab(name){
+  document.querySelectorAll('.tbtn').forEach((b,i)=>b.classList.toggle('active',['recipes','calendar','shopping'][i]===name));
+  document.querySelectorAll('.tc').forEach(el=>el.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  if(name==='calendar')renderCal();
+  if(name==='shopping')generateShopping();
+  if(name==='recipes')renderRecipes();
+}
+
+// ===== TOAST =====
+function toast(msg){
+  const el=document.getElementById('toast');
+  el.textContent=msg;el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),2500);
+}
+
+// ===== INIT =====
+load();
+renderRecipes();
+renderCal();
+</script>
+</body>
+</html>
